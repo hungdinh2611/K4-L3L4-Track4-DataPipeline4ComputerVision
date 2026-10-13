@@ -120,7 +120,7 @@ from marts.mart_trip_summary
 order by dropped_pct desc, trip_id;
 ```
 
-Câu hỏi đã thêm vào dashboard với tên `2A202602524: tỷ lệ khung bị loại theo trip`. Tỷ lệ dùng số frame vào Gold nên không cộng các lý do loại có thể chồng lấp. Các trip có tỷ lệ cao nên được kiểm tra camera, cảnh và đồng bộ trước khi bổ sung dữ liệu huấn luyện. Dashboard: http://localhost:3000/dashboard/2.
+Câu hỏi đã thêm vào dashboard với tên `2A202602524: tỷ lệ khung bị loại theo trip`. Kết quả cao nhất là A/trip-04622: 60 khung, giữ 26, loại 56,67%; tiếp theo trip-03904 loại 50%, trip-02086 loại 46,67%. Tỷ lệ dùng số frame vào Gold nên không cộng các lý do loại có thể chồng lấp. Các trip có tỷ lệ cao nên được kiểm tra camera, cảnh và đồng bộ trước khi bổ sung dữ liệu huấn luyện. Dashboard: http://localhost:3000/dashboard/2.
 
 ## Nhìn lại
 
