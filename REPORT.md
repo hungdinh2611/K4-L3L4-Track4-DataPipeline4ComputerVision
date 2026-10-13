@@ -32,12 +32,21 @@ Mỗi nguồn được giữ riêng ở Bronze để bảo toàn schema gốc v�
 ### Câu 2
 Pipeline đưa hai nguồn về một schema như thế nào (đơn vị, kiểu thời gian, **độ lệch đồng hồ**)? Bằng chứng nào trong kết quả bước 2 cho thấy đã đúng? Dán bảng quarantine của bạn (số dòng theo từng lý do, từng drive) và giải thích vì sao dòng lỗi vào `rejects` thay vì bị xoá.
 
-(trả lời ở đây)
+A giữ tốc độ m/s và chuyển timestamp ISO sang UTC. B đổi km/h sang m/s bằng cách chia 3,6; đổi epoch ms sang timestamp sau khi trừ 1.500 ms; chia hai bàn đạp phần trăm cho 100 và đổi tên cột. Hai nguồn được hợp nhất theo tên cột rồi phân loại lỗi.
+
+| Drive | Trùng | Thiếu tốc độ | Tốc độ ngoài phạm vi | Sạch |
+|---|---:|---:|---:|---:|
+| A | 20 | 30 | 3 | 2968 |
+| B | 20 | 30 | 3 | 3181 |
+
+Tổng sạch 6.149 và rejects 106 bằng 6.255 dòng nhận về. B bắt đầu tại `2025-10-08 14:30:00.009 UTC`, cách đầu video 9 ms; bước 2 đạt 7/7. Rejects bảo toàn dòng lỗi và nguyên nhân để điều tra hoặc xử lý lại thay vì mất dữ liệu khi xóa.
 
 ### Câu 3
 Vì sao test `max_gap_ms` là `warn` còn `in_range` là `error`? Kết quả thí nghiệm `break-gate` của bạn (`break_gate.json`): test nào bắt được, bao nhiêu dòng, và điều đó cho biết gì về vai trò của "cổng chất lượng"?
 
-(trả lời ở đây)
+`max_gap_ms` có severity warn vì khoảng mất tín hiệu cần được báo để theo dõi, còn các mẫu hợp lệ khác vẫn dùng được. `in_range` mặc định error vì tốc độ ngoài 0–70 m/s là dữ liệu sai cần chặn trước khi đưa sang Gold.
+
+Thí nghiệm `break_gate.json` nới luật làm sạch lên 1.000 m/s. Test `in_range_silver_telemetry_speed_mps__70__0` bắt 6 dòng, tổng kết `PASS=5 WARN=1 ERROR=1 SKIP=0`. Khôi phục luật cho `PASS=6 WARN=1 ERROR=0 SKIP=0`. Cổng test độc lập phát hiện được dữ liệu sai dù bước biến đổi chạy thành công.
 
 ## Bước 3 · Silver frames
 
