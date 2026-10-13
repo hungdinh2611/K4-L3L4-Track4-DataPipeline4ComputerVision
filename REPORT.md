@@ -11,7 +11,7 @@
 
 ## Kết quả cuối
 
-Kết quả chạy: dữ liệu đạt 6/6 file khớp SHA256; 9 unit test PASS; verify đạt 27/27. DAG từ lake trống hoàn tất 37/37 task sau bài tập sập/chạy lại. Airflow tại http://localhost:8081 (8080 đang bị chiếm); MinIO tại http://localhost:9001; Metabase tại http://localhost:3000/dashboard/2. Ảnh giao diện còn cần chụp vì công cụ UI không có trình duyệt kết nối.
+Kết quả chạy: dữ liệu đạt 6/6 file khớp SHA256; 9 unit test PASS; verify đạt 27/27. DAG từ lake trống hoàn tất 37/37 task sau bài tập sập/chạy lại. Airflow tại http://localhost:8081 (8080 đang bị chiếm); MinIO tại http://localhost:9001; Metabase tại http://localhost:3000/dashboard/2. Ảnh Graph, log lỗi, Metabase và MinIO đã được lưu trong report/screenshots; ảnh MinIO hiện là Summary của bucket lake, nên bổ sung ảnh Object Browser thấy bronze/silver/gold để bám sát rubric.
 
 - `dataset_version` của bạn: `b31126fa6079` (phải khớp `report/evidence/run_summary.json`)
 - Số khung hình train / val / test của bạn: **680 / 143 / 196**, tổng 1.019; 18 / 4 / 4 trip.
@@ -100,7 +100,7 @@ Mô tả chính xác điều xảy ra khi trip của bạn sập rồi chạy l�
 
 Run `lab_fail_retry_2A202602524` được trigger sau khi DAG reset lake. Một task `silver_frames[18]` đỏ, log ghi `simulated crash while extracting trip-06667`; bảy task phía sau `upstream_failed`, 25 partition khác thành công. API clear chỉ task failed khiến partition đó chạy lại thành công; bảy downstream vẫn giữ upstream_failed. Vì vậy cần clear thêm bảy task bị chặn để chúng chạy lần đầu. Tổng cộng chỉ một partition trích ảnh chạy lại, các partition thành công không bị chạy lại.
 
-DAG cuối có 37 task success, verify 27/27, Gold vẫn 1.019 ảnh, version `b31126fa6079` không đổi. Bằng chứng thật: `airflow_failed_state.json`, `airflow_fail_task.log`, `airflow_success_state.json` trong report/evidence. Thao tác được thực hiện qua API Airflow; ảnh log và Graph còn cần chụp. Kết quả thực tế này cho thấy chỉ clear task đỏ chưa đủ trên Airflow 2.10.5.
+DAG cuối có 37 task success, verify 27/27, Gold vẫn 1.019 ảnh, version `b31126fa6079` không đổi. Bằng chứng thật: `airflow_failed_state.json`, `airflow_fail_task.log`, `airflow_success_state.json` trong report/evidence. Thao tác được thực hiện qua API Airflow; ảnh log và Graph đã lưu tại report/screenshots/fail_task_log.png và airflow_retry_graph.png. Kết quả thực tế này cho thấy chỉ clear task đỏ chưa đủ trên Airflow 2.10.5.
 
 ### Câu 10
 Nâng từ 2 drive lên **500 xe mỗi ngày**: ba thành phần nào của pipeline này sẽ vỡ đầu tiên, và bạn thay bằng gì (nối với slide 12, 22, 23)?
