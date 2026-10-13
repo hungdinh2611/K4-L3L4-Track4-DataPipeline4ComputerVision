@@ -11,7 +11,7 @@
 
 ## Kết quả cuối
 
-Trạng thái hiện tại: dữ liệu đạt 6/6 file khớp SHA256; Docker và Python đã sẵn sàng. Đang dựng môi trường để chạy pipeline và lấy số liệu thực nghiệm.
+Kết quả chạy: dữ liệu đạt 6/6 file khớp SHA256; 9 unit test PASS; verify đạt 27/27. DAG từ lake trống hoàn tất 37/37 task sau bài tập sập/chạy lại. Airflow tại http://localhost:8081 (8080 đang bị chiếm); MinIO tại http://localhost:9001; Metabase tại http://localhost:3000/dashboard/2. Ảnh giao diện còn cần chụp vì công cụ UI không có trình duyệt kết nối.
 
 - `dataset_version` của bạn: `b31126fa6079` (phải khớp `report/evidence/run_summary.json`)
 - Số khung hình train / val / test của bạn: **680 / 143 / 196**, tổng 1.019; 18 / 4 / 4 trip.
@@ -98,21 +98,32 @@ Cần giữ các snapshot Delta ở version đó, file nguồn khớp SHA256, m�
 ### Câu 9
 Mô tả chính xác điều xảy ra khi trip của bạn sập rồi chạy lại: bao nhiêu task chuyển đỏ, bao nhiêu task `upstream_failed`, bạn clear gì, dữ liệu có nhân đôi không, `dataset_version` có đổi không? Bằng chứng (ảnh, số) là gì?
 
-(trả lời ở đây)
+Run `lab_fail_retry_2A202602524` được trigger sau khi DAG reset lake. Một task `silver_frames[18]` đỏ, log ghi `simulated crash while extracting trip-06667`; bảy task phía sau `upstream_failed`, 25 partition khác thành công. API clear chỉ task failed khiến partition đó chạy lại thành công; bảy downstream vẫn giữ upstream_failed. Vì vậy cần clear thêm bảy task bị chặn để chúng chạy lần đầu. Tổng cộng chỉ một partition trích ảnh chạy lại, các partition thành công không bị chạy lại.
+
+DAG cuối có 37 task success, verify 27/27, Gold vẫn 1.019 ảnh, version `b31126fa6079` không đổi. Bằng chứng thật: `airflow_failed_state.json`, `airflow_fail_task.log`, `airflow_success_state.json` trong report/evidence. Thao tác được thực hiện qua API Airflow; ảnh log và Graph còn cần chụp. Kết quả thực tế này cho thấy chỉ clear task đỏ chưa đủ trên Airflow 2.10.5.
 
 ### Câu 10
 Nâng từ 2 drive lên **500 xe mỗi ngày**: ba thành phần nào của pipeline này sẽ vỡ đầu tiên, và bạn thay bằng gì (nối với slide 12, 22, 23)?
 
-(trả lời ở đây)
+1. Decode video bằng FFmpeg trên một máy và xử lý từng trip tuần tự sẽ thiếu CPU/I/O. Tách worker theo trip, chạy trên cụm máy với giới hạn đồng thời, hàng đợi và autoscaling; backfill chỉ partition cần làm lại.
+2. DuckDB dùng file cục bộ và Delta trên một MinIO đơn sẽ khó phục vụ nhiều writer/truy vấn lớn. Dùng object storage phân tán, quản lý catalog và engine phân tán như Spark/Trino; kiểm soát writer, compact file nhỏ và partition theo ngày/xe/trip.
+3. Airflow LocalExecutor và Postgres cùng stack nhỏ sẽ giới hạn điều phối, RAM và phục vụ dashboard. Tách scheduler/worker, dùng executor cho cụm, tăng năng lực metadata DB và đưa marts sang warehouse có thể mở rộng. Theo dõi thời gian task, độ trễ ingest, tốc độ đọc/ghi và tỷ lệ lỗi để quyết định thứ tự nâng cấp.
 
 ## Câu hỏi riêng của bạn trên Metabase
 
 Câu SQL bạn thêm vào dashboard và điều nó cho biết:
 
-(trả lời ở đây)
+```sql
+select drive_id, trip_id, frames, frames_kept,
+       round(100.0 * (frames - frames_kept) / nullif(frames, 0), 2) as dropped_pct
+from marts.mart_trip_summary
+order by dropped_pct desc, trip_id;
+```
+
+Câu hỏi đã thêm vào dashboard với tên `2A202602524: tỷ lệ khung bị loại theo trip`. Tỷ lệ dùng số frame vào Gold nên không cộng các lý do loại có thể chồng lấp. Các trip có tỷ lệ cao nên được kiểm tra camera, cảnh và đồng bộ trước khi bổ sung dữ liệu huấn luyện. Dashboard: http://localhost:3000/dashboard/2.
 
 ## Nhìn lại
 
 Điều bạn thấy bất ngờ nhất, điều gì còn chưa rõ, và một lỗi dữ liệu mà bạn nghĩ pipeline **chưa** bắt được (nếu có). Tối đa 8 dòng.
 
-(trả lời ở đây)
+Thí nghiệm append cho thấy một lần chạy lại có thể làm số dòng tăng gấp đôi dù đầu vào không đổi. Ngưỡng dHash 6 loại nhiều khung hơn rõ rệt so với 2; cần kiểm tra ảnh trước khi chọn ngưỡng cho từng cảnh. Điểm còn cần đánh giá là phân biệt camera đứng hình với xe dừng thật. Pipeline chưa có test cho GPS nhảy xa hoặc camera quay sai hướng: các ảnh vẫn có thể sáng, nét và không trùng nhưng không đúng dữ liệu cần học.
