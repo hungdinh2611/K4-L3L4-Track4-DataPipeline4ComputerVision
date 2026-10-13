@@ -53,18 +53,22 @@ Thí nghiệm `break_gate.json` nới luật làm sạch lên 1.000 m/s. Test `i
 ### Câu 4
 Dựa vào `idempotency.json`: số dòng trước và sau hai lần chạy lại, và khi ghi kiểu `append`. Vì sao Delta `overwrite` theo partition (một trip) an toàn hơn xoá rồi ghi lại, nhất là khi giữa chừng có lỗi?
 
-(trả lời ở đây)
+Thí nghiệm trên `trip-06667`: bảng có 1.246 dòng trước và sau hai lần chạy lại, dấu vân tay đều `6c7480dfde7e`. Trip có 29 khung; ghi append hai lần tạo 58 dòng, gấp đôi. File `idempotency.json` ghi `unchanged=true`.
+
+Delta overwrite với predicate `trip_id` chỉ thay partition của trip đó trong một transaction. Nếu chưa commit mà lỗi, bản trước vẫn đọc được; nếu commit thành công, người đọc thấy bản mới hoàn chỉnh. Xóa trước rồi ghi tạo khoảng trống hoặc mất dữ liệu khi tiến trình chết giữa hai thao tác.
 
 ### Câu 5
 Khung hình **đen** và khung hình **tối** khác nhau thế nào, pipeline xử lý khác nhau ra sao, bạn có đồng ý không? Dựa vào `threshold.json`: nếu chọn ngưỡng 0, 2, 6 thì bao nhiêu khung bị coi là trùng ở mỗi drive? Bạn chọn ngưỡng nào, vì sao, và ngưỡng đó phụ thuộc vào tốc độ xe thế nào?
 
 | dHash khác tối đa | số khung trùng, drive A | số khung trùng, drive B |
 |---|---|---|
-| 0 | | |
-| 2 | | |
-| 6 | | |
+| 0 | 61 | 8 |
+| 2 | 149 | 53 |
+| 6 | 363 | 244 |
 
-(trả lời ở đây)
+Khung đen có độ sáng trung bình dưới 12; khung tối có độ sáng từ 12 đến dưới 40. A có 6 khung đen và 4 khung tối, B có 4 khung đen và 61 khung tối. Gold loại khung đen; khung tối không bị loại chỉ vì tối, nhưng vẫn có thể bị loại bởi cờ khác. Giữ cảnh tối giúp dataset có đường hầm/bóng râm thực tế.
+
+Chọn ngưỡng 2 như pipeline: ngưỡng 0 giữ nhiều ảnh gần giống, còn ngưỡng 6 loại tới 363/602 khung A và 244/644 khung B, dễ mất cảnh hữu ích. Xe chạy chậm tạo nhiều frame tương tự nên cần cân nhắc mức loại; xe chạy nhanh làm cảnh thay đổi nhiều, ngưỡng cao có thể gộp các khung khác nhau có ý nghĩa. dHash không tự phân biệt xe dừng thật với camera đứng hình.
 
 ## Bước 4 · Gold
 
