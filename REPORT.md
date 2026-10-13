@@ -4,12 +4,14 @@
 
 | | |
 |---|---|
-| Họ và tên | `<điền>` |
-| MSSV (đúng bằng `LAB_STUDENT_ID` trong `.env`) | `<điền>` |
-| GitHub | `<điền: tên tài khoản>` |
-| Trip dùng cho bài tập sập và chạy lại (xem GUIDE, bước 5) | `<điền: trip-xxxxx>` |
+| Họ và tên | Dinh Bao Hung (theo cấu hình Git của máy) |
+| MSSV (đúng bằng `LAB_STUDENT_ID` trong `.env`) | `2A202602524` |
+| GitHub | `hungdinh2611` |
+| Trip dùng cho bài tập sập và chạy lại (xem GUIDE, bước 5) | `trip-08448` (tạm ánh xạ bằng cách bỏ chữ `A`: `202602524 % 26 = 22`; cần xác nhận nếu giảng viên quy định cách ánh xạ khác) |
 
 ## Kết quả cuối
+
+Trạng thái hiện tại: dữ liệu đạt 6/6 file khớp SHA256; Docker và Python đã sẵn sàng. Đang dựng môi trường để chạy pipeline và lấy số liệu thực nghiệm.
 
 - `dataset_version` của bạn: `<điền>`  (phải khớp `report/evidence/run_summary.json`)
 - Số khung hình train / val / test của bạn: `<điền>`
@@ -21,7 +23,9 @@
 ### Câu 1
 Liệt kê **ít nhất 4 khác biệt** giữa telemetry nguồn A và nguồn B mà bạn thấy ở bronze. Vì sao pipeline giữ **mỗi nguồn một bảng bronze** và để mọi cột ở dạng chữ, thay vì gộp và ép kiểu ngay?
 
-(trả lời ở đây)
+CSV A có 3.021 dòng, B có 3.234 dòng. A dùng `ts_utc` dạng ISO UTC, B dùng `timestamp_ms` dạng epoch mili giây. A dùng `speed_mps` (m/s), B dùng `spd_kmh` (km/h). A có `heading_deg`, `lat`, `lon`, B có `hdg`, `latitude`, `longitude`. B dùng `throttle_pct` và `brake_pct` theo phần trăm, còn `gas` và `brake` của A theo tỷ lệ 0–1. Đồng hồ B nhanh hơn video 1.500 ms, A có offset 0.
+
+Mỗi nguồn được giữ riêng ở Bronze để bảo toàn schema gốc và có thể truy lại lỗi. Giữ cột dưới dạng chữ tránh làm mất ô trống hoặc dữ liệu lỗi khi ép kiểu. Silver mới chuẩn hóa và lưu dòng lỗi vào rejects để kiểm tra nguyên nhân.
 
 ## Bước 2 · Silver telemetry
 
