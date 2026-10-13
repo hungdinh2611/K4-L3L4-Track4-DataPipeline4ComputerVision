@@ -13,8 +13,8 @@
 
 Trạng thái hiện tại: dữ liệu đạt 6/6 file khớp SHA256; Docker và Python đã sẵn sàng. Đang dựng môi trường để chạy pipeline và lấy số liệu thực nghiệm.
 
-- `dataset_version` của bạn: `<điền>`  (phải khớp `report/evidence/run_summary.json`)
-- Số khung hình train / val / test của bạn: `<điền>`
+- `dataset_version` của bạn: `b31126fa6079` (phải khớp `report/evidence/run_summary.json`)
+- Số khung hình train / val / test của bạn: **680 / 143 / 196**, tổng 1.019; 18 / 4 / 4 trip.
 - `report/verify.txt`: tạo bằng `python3 scripts/check_submission.py --save-verify` (phải có `27/27 checks passed`).
 - Ảnh chụp trong `report/screenshots/`: `airflow_graph.png`, `minio_lake.png`, `metabase_dashboard.png`, và ảnh bài tập sập/chạy lại (log task đỏ thấy trip của bạn).
 
@@ -75,17 +75,23 @@ Chọn ngưỡng 2 như pipeline: ngưỡng 0 giữ nhiều ảnh gần giống,
 ### Câu 6
 Dựa vào `leakage.json`: chia theo khung hình làm bao nhiêu trip bị chia cắt, so với chia theo trip? Vì sao điều này làm điểm kiểm thử đẹp một cách giả tạo?
 
-(trả lời ở đây)
+`leakage.json` có 1.019 khung thuộc 26 trip. Chia theo frame làm 26 trip xuất hiện trong nhiều split và cả 26 có frame ở train lẫn test. Gold chia theo trip nên số trip bị chia cắt là 0.
+
+Frame liền nhau giống nhau về cảnh, ánh sáng và chuyển động. Nếu cùng trip xuất hiện trong train và test, mô hình có thể ghi nhớ cảnh đã học, khiến điểm test cao nhưng không phản ánh khả năng xử lý chuyến mới.
 
 ### Câu 7
 Vì sao `dataset_version` là **băm nội dung** chứ không phải ngày giờ hay số đếm? Hai lần chạy liên tiếp cho kết quả gì? Vì sao `dataset_version` của bạn **khác** bạn bè dù cùng dữ liệu (liên hệ MSSV)?
 
-(trả lời ở đây)
+Hai lần export cho cùng `b31126fa6079`, cùng 680/143/196 khung. Code băm SHA256 chuỗi `frame_id|split` đã sắp xếp và lấy 12 ký tự đầu, nên phiên bản nhận diện danh sách ảnh và phân chia dataset, không phụ thuộc giờ chạy. Đây không phải băm trực tiếp nội dung pixel; SHA nguồn và lineage bổ sung việc truy nguồn.
+
+MSSV đầy đủ `2A202602524` được nối với trip_id trước khi băm MD5 để xếp thứ tự trip trong từng drive. Đổi MSSV có thể đổi thứ tự, split và dataset_version dù video đầu vào giống nhau. Phiên bản không đổi khi chạy lại cùng MSSV và cùng danh sách frame/split.
 
 ### Câu 8
 Đọc phần `lineage` trong `manifest.json` của dataset bạn. Trả lời "dataset này được tạo từ dữ liệu nào?" bằng chính nội dung đó. Nếu một người hỏi 3 tháng sau, thông tin nào giúp tái tạo lại đúng dataset này?
 
-(trả lời ở đây)
+Manifest lần export hiện có trong `report/evidence/manifest.json`: Bronze A/B/trips version 0, video_files version 1; silver.frames version 27 sau hai lần chạy lại một trip; telemetry, frames_flagged và frame_telemetry version 0. Nguồn video A có SHA256 `636ba1a98dfc5ba665d1c935e1d2064e69f4df360ff9ffbd15795957d5e7e9aa`, B có `bfa62703f645ff77a8578ae3fc74a00881140d38a404d43c8e2af265bbee9fdc`.
+
+Cần giữ các snapshot Delta ở version đó, file nguồn khớp SHA256, mã pipeline/dbt, tham số xử lý và MSSV để tái tạo. Manifest ghi luật loại khung đen/mờ/trùng/mất đồng bộ và chia theo trip. Sau lần chạy lại từ lake trống, version Delta có thể khác nhưng nội dung dataset và dataset_version vẫn phải khớp.
 
 ## Bước 5 · Điều phối và phục vụ
 
